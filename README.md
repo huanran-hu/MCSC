@@ -54,13 +54,7 @@ python scripts/inference_with_features.py \
 ```
 
 ### MCSC-GEN
-每个sample包括来自多个视频片段的帧，输入视频素材清单、文本素材、用户指令，进行推理
-MCSC-GEN/frames.zip，包含所有sample的图片帧数据，请将其解压到frames目录下
-MCSC-GEN/input.json中，每个item代表一个sample，name_image_list包含该sample的视频id与视频帧路径。video_material，text_material，instruction分别表示视频素材清单，文本素材，用户指令，推理时一并输入模型。注意视频id和视频帧要使用图文交错的形式，即name_image_list
-MCSC-GEN/metadata.json中，每个item有distractor，和duration，字段，标明了干扰素材
-
-
-
+MCSC-GEN is designed for **direct inference with any multimodal large language model** without pre-extracted features. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip `MCSC-GEN/frames.zip` and unzip it to the `frames/` directory. `iMCSC-GEN/nput.json` contains all samples, where each item includes a `name_image_list` (interleaved video clip IDs and frame paths), `video_material` (video clip inventory with durations), `text_material` (text reference material), and `instruction` (user instruction). When constructing model input, follow the `name_image_list` order to build an **image-text interleaved** sequence: clip IDs (e.g., `"1.mp4"`) serve as text markers and frame paths are loaded as images. `MCSC-GEN/metadata.json` provides additional annotations: `distractor` indicates which clips are irrelevant distractor material, and `duration` specifies the target video length in seconds.
 
 ## Additional Main Results
 
