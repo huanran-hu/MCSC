@@ -3,50 +3,98 @@
 **Huanran Hu, Zihui Ren, Dingyi Yang, Liangyu Chen, Qixiang Gao, Tiezheng Ge, Qin Jin**
 
 ## Overview
+For more details on dataset contruction, Evaluator–Human Agreement, etc, please refer to [Additional Main Results](## Additional Main Results).
+For more details on dataset annotation, human evaluation, additional case studies, etc, please refer to [supplementary material](supplementary.pdf).
 
-We introduce **Multimodal Context-to-Script Creation (MCSC)**, a novel task requiring models to generate structured, production-ready video scripts from redundant multimodal long contexts containing both relevant and distracting materials.
 
-Our main contributions are as follows:
+## MCSC-GEN
 
-1. **New Task & Formulation.** We formalize the MCSC task, which unifies material selection, narrative planning, and shot-level script generation into a single end-to-end pipeline, bridging the gap between multimodal understanding and creative video production.
+### MCSC-ZH
 
-2. **Large-Scale Dataset.** We construct **MCScript**, a large-scale dataset comprising 11K+ videos with structured script annotations. The evaluation suite **MCSC-Bench** covers both Chinese advertisement (MCSC-ZH) and cross-domain generalization settings including English ads, tutorials, and vlogs (MCSC-GEN).
+We provides pre-extracted Qwen3-VL visual features for multi-video script generation research. Features are stored in safetensors format, enabling inference **without** raw video files or the Vision Encoder.
 
-3. **Comprehensive Evaluation Framework.** We design a multi-dimensional evaluation protocol combining rule-based metrics (Err, Rep, ΔT) with LLM-based scoring across six quality dimensions, and train an open-source Evaluator Model that achieves strong agreement with human judgments.
+#### Quick Start
 
-4. **Extensive Benchmarking.** We systematically evaluate a wide range of proprietary and open-source multimodal LLMs, revealing key challenges in long-context reasoning, material filtering, and narrative coherence. Our fine-tuned MCSC-8B-RL model demonstrates competitive performance against much larger models.
+**1. Clone the repository**
 
-## Data Construction Pipeline
+**2. Install dependencies**
+
+We recommend Python ≥ 3.10 and CUDA ≥ 12.1.
+
+```bash
+# Create a virtual environment (recommended)
+conda create -n mcsc python=3.10 -y
+conda activate mcsc
+
+# Install PyTorch (adjust for your CUDA version, see https://pytorch.org)
+pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+
+# Install flash-attn (requires CUDA toolkit)
+pip install flash-attn --no-build-isolation
+
+# Install other dependencies
+pip install -r requirements.txt
+```
+
+3. Download the data
+
+Download the pre-extracted features from the link below and unzip:
+https://g20.alicdn.com/zhonghong/MCSC-ZH_backup/
+
+4. Run inference
+You can customize prefix_prompt and suffix_prompt, using video_material, instruction, and text_material in MCSC-ZH/input.json.
+```bash
+python scripts/inference_with_features.py \
+    --video_id 286638572610 \
+    --features_root ./data/MCSC-ZH-features \
+    --all_input_json ./MCSC-ZH/input.json \
+    --prefix_prompt "..." \
+    --suffix_prompt "..." \
+    --max_new_tokens 4096
+```
+
+### MCSC-GEN
+每个sample包括来自多个视频片段的帧，输入视频素材清单、文本素材、用户指令，进行推理
+MCSC-GEN/frames.zip，包含所有sample的图片帧数据，请将其解压到frames目录下
+MCSC-GEN/input.json中，每个item代表一个sample，name_image_list包含该sample的视频id与视频帧路径。video_material，text_material，instruction分别表示视频素材清单，文本素材，用户指令，推理时一并输入模型。注意视频id和视频帧要使用图文交错的形式，即name_image_list
+MCSC-GEN/metadata.json中，每个item有distractor，和duration，字段，标明了干扰素材
+
+
+
+
+## Additional Main Results
+
+### Data Construction Pipeline
 
 Overview of the MCScript dataset construction. Video materials are drawn from a large video pool.
 
 ![pipeline](images/pipeline.png)
 
-## Dataset Statistics
+### Dataset Statistics
 
 (a) Distribution of total video duration. (b) Distribution of shot duration. (c) Word cloud of video types in MCSC-Bench.
 
 ![stat](images/stat.png)
 
-## Multi-Dimensional Evaluation
+### Multi-Dimensional Evaluation
 
 Multi-dimensional evaluation on MCSC-Bench (rescaled by maximum and minimum for better visualization) shows a clear performance ladder across models.
 
 ![radar](images/radar.png)
 
-## Evaluator–Human Agreement
+### Evaluator–Human Agreement
 
 We validate the reliability of our Evaluator Model by measuring agreement with human judgments using Spearman's ρ (rank), Kendall's τ (rank), and Pearson's r (value). \* denotes p-value < 0.001, indicating statistical significance.
 
 ![human](images/human.png)
 
-## Full Results on MCSC-GEN
+### Full Results on MCSC-GEN
 
 Due to page limits in the main paper, we only report partial MCSC-GEN results. Below we list the complete performance of all evaluated models on MCSC-GEN.
 
 ![English](images/English.png)
 
-## Long-Context Stress Test
+### Long-Context Stress Test
 
 To examine model robustness under flexible demands, we conduct a comprehensive long-context stress test from both input and output perspectives. Since ads provide sufficient available material, this stress test is specifically evaluated on MCSC-ZH.
 
@@ -67,12 +115,29 @@ which jointly penalizes material misuse, repetition, and duration deviation. The
 
 ![long_context](images/long_context.png)
 
-## Video Generation Case Study
+### Video Generation Case Study
 
 Qualitative analysis of downstream video generation from model-produced scripts.
 
 ![generation](images/generation.png)
 
-## Supplementary Material
 
-For more details on dataset annotation, human evaluation, and additional case studies, please refer to [supplementary.pdf](supplementary.pdf).
+## License, Ethics, and Access
+
+By downloading or using the MCScript dataset, you agree to all the following terms.
+
+### Academic Use Only
+This dataset is available for academic research purposes only. Any commercial use is strictly prohibited.
+
+### No Redistribution
+You may not redistribute the dataset in any form without prior written consent from the authors.
+
+### Privacy Protection
+Chinese data is derived from e-commerce videos under authorized institutional access. All visual content is released exclusively as de-identified features extracted via the Qwen3-VL-8B vision encoder; no raw images or videos are distributed for privacy reasons. Researchers requiring features from alternative encoders (e.g., Qwen2.5-VL) may contact us at [huanranhu@ruc.edu.cn] for assistance.
+
+### Copyright and Takedown Policy
+MCSC-GEN contains sampled frames from publicly available YouTube and TikTok videos. We reference the Vript dataset for video selection; all video content is  sourced from public platforms. We respect the privacy of personal information of the original source. If you are a copyright holder and believe any content infringes your rights, please contact [huanranhu@ruc.edu.cn].
+
+### Disclaimer
+You are solely responsible for legal liability arising from your use of this dataset. The authors reserve the right to modify or terminate access at any time and shall not be liable for any damages arising from its use.
+
