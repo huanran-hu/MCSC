@@ -11,7 +11,26 @@ For more details on dataset annotation, human evaluation, additional case studie
 
 ### MCSC-ZH
 
-We provides pre-extracted Qwen3-VL visual features for multi-video script generation research. Features are stored in safetensors format, enabling inference **without** raw video files or the Vision Encoder.
+We provides pre-extracted Qwen3-VL visual features including two formats. Features are stored in safetensors format, enabling inference without raw video files or the Vision Encoder.
+
+#### Data Description
+
+`all_input.json` contains all sample entries. Each item includes `instruction` (user instruction), `text_material` (text reference material), `video_material` (video clip inventory with durations), and `name_image_list` (interleaved video clip IDs and feature file paths). When constructing model input, follow `name_image_list` order to build an image-text interleaved sequence: clip IDs (e.g., `"1.mp4"`) serve as text markers and feature paths are loaded as visual embeddings.
+
+Download the feature archive and unzip it. The directory is organized by sample ID, with each sample containing a `features/` directory. Inside, video clips are identified by sub-directory names (e.g., `1_1`, `1_2`), and each clip contains numbered frame directories (e.g., `000001`, `000002`). Each frame directory holds three files:
+
+- **`features.safetensors`** — Contains the following tensors:
+  - `post_merger_embeds`: Output of the Vision Encoder (ViT + Merger), shape `[N, hidden_size]`. This is the primary visual representation ready for direct injection into the language model.
+  - `image_grid_thw`: Patch grid dimensions `[1, 3]` (temporal, height, width), required for M-RoPE position encoding.
+  - `pre_merger_embeds` (optional): Raw ViT output before the Merger, shape `[M, vision_dim]`.
+  - `deepstack_feature_00`, `deepstack_feature_01`, ... : Multi-level intermediate ViT features used by Qwen3-VL's DeepStack mechanism for fine-grained visual injection into LLM layers.
+
+- **`metadata.json`** — Records the source image path, MD5 hash, original resolution, tensor shapes, and extraction device/dtype for traceability.
+
+- **`feature_card.json`** — Full reproducibility card including model configuration, extraction parameters, library versions, and feature dimension descriptions.
+
+Features were extracted using Qwen3-VL-8B-Instruct (transformers 4.57.1, torch 2.6.0, bfloat16). See `scripts/extract_all_features.py` for the extraction code.
+
 
 #### Quick Start
 
