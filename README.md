@@ -95,12 +95,6 @@ Multi-dimensional evaluation on MCSC-Bench (rescaled by maximum and minimum for 
 
 ![radar](images/radar.png)
 
-### Evaluator–Human Agreement
-
-We validate the reliability of our Evaluator Model by measuring agreement with human judgments using Spearman's ρ (rank), Kendall's τ (rank), and Pearson's r (value). \* denotes p-value < 0.001, indicating statistical significance.
-
-![human](images/human.png)
-
 ### Full Results on MCSC-GEN
 
 Due to page limits in the main paper, we only report partial MCSC-GEN results. Below we list the complete performance of all evaluated models on MCSC-GEN.
