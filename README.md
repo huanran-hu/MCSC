@@ -15,26 +15,6 @@ Download link: https://huggingface.co/datasets/KevinHu0218/MCSC.
 
 We provides pre-extracted Qwen3-VL visual features including two formats. Features are stored in safetensors format, enabling inference without raw video files or the Vision Encoder.
 
-
-#### Data Description
-
-`all_input.json` contains all sample entries. Each item includes `instruction` (user instruction), `text_material` (text reference material), `video_material` (video clip inventory with durations), and `name_image_list` (interleaved video clip IDs and feature file paths). When constructing model input, follow `name_image_list` order to build an image-text interleaved sequence: clip IDs (e.g., `"1.mp4"`) serve as text markers and feature paths are loaded as visual embeddings.
-
-Download the feature archive and unzip it. The directory is organized by sample ID, with each sample containing a `features/` directory. Inside, video clips are identified by sub-directory names (e.g., `1_1`, `1_2`), and each clip contains numbered frame directories (e.g., `000001`, `000002`). Each frame directory holds three files:
-
-- **`features.safetensors`** — Contains the following tensors:
-  - `post_merger_embeds`: Output of the Vision Encoder (ViT + Merger), shape `[N, hidden_size]`. This is the primary visual representation ready for direct injection into the language model.
-  - `image_grid_thw`: Patch grid dimensions `[1, 3]` (temporal, height, width), required for M-RoPE position encoding.
-  - `pre_merger_embeds` (optional): Raw ViT output before the Merger, shape `[M, vision_dim]`.
-  - `deepstack_feature_00`, `deepstack_feature_01`, ... : Multi-level intermediate ViT features used by Qwen3-VL's DeepStack mechanism for fine-grained visual injection into LLM layers.
-
-- **`metadata.json`** — Records the source image path, MD5 hash, original resolution, tensor shapes, and extraction device/dtype for traceability.
-
-- **`feature_card.json`** — Full reproducibility card including model configuration, extraction parameters, library versions, and feature dimension descriptions.
-
-Features were extracted using Qwen3-VL-8B-Instruct (transformers 4.57.1, torch 2.6.0, bfloat16). See `scripts/extract_all_features.py` for the extraction code.
-
-
 #### Quick Start
 
 **1. Clone the repository**
@@ -60,11 +40,10 @@ pip install -r requirements.txt
 
 3. Download the data
 
-Download the pre-extracted features from the link below and unzip:
-https://g20.alicdn.com/zhonghong/MCSC-ZH_backup/
+Download the pre-extracted features from the link below and unzip: https://huggingface.co/datasets/KevinHu0218/MCSC.
 
 4. Run inference
-You can customize prefix_prompt and suffix_prompt, using video_material, instruction, and text_material in MCSC-ZH/input.json.
+You can customize prefix_prompt and suffix_prompt, using video_material, instruction, and text_material in data1/input.json.
 ```bash
 python scripts/inference_with_features.py \
     --video_id 286638572610 \
@@ -76,14 +55,14 @@ python scripts/inference_with_features.py \
 ```
 
 ### OOD Test set
-MCSC-GEN is designed for **direct inference with any multimodal large language model** without pre-extracted features. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip `MCSC-GEN/frames.zip` and unzip it to the `frames/` directory. `iMCSC-GEN/nput.json` contains all samples, where each item includes a `name_image_list` (interleaved video clip IDs and frame paths), `video_material` (video clip inventory with durations), `text_material` (text reference material), and `instruction` (user instruction). When constructing model input, follow the `name_image_list` order to build an **image-text interleaved** sequence: clip IDs (e.g., `"1.mp4"`) serve as text markers and frame paths are loaded as images. `MCSC-GEN/metadata.json` provides additional annotations: `distractor` indicates which clips are irrelevant distractor material, and `duration` specifies the target video length in seconds.
+In data2, we provide general OOD test set. It is designed for direct inference with any multimodal large language model without pre-extracted features. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip [data2/frames.zip](https://huggingface.co/datasets/KevinHu0218/MCSC/blob/main/data2/frames.zip) and unzip it to the frames/ directory.
 
 
 ## Additional Main Results
 
 ### Data Construction Pipeline
 
-Overview of the MCScript dataset construction. Video materials are drawn from a large video pool.
+Overview of the MCSC-Bench dataset construction. Video materials are drawn from a large video pool.
 
 ![pipeline](images/pipeline.png)
 
@@ -95,13 +74,13 @@ Multi-dimensional evaluation on MCSC-Bench (rescaled by maximum and minimum for 
 
 ### Full Results on Out-of-Domain Test
 
-Due to page limits in the main paper, we only report partial MCSC-GEN results. Below we list the complete performance of all evaluated models on MCSC-GEN.
+Due to page limits in the main paper, we only report partial results. Below we list the complete performance of all evaluated models.
 
 ![English](images/English.png)
 
 ### Long-Context Stress Test
 
-To examine model robustness under flexible demands, we conduct a comprehensive long-context stress test from both input and output perspectives. Since ads provide sufficient available material, this stress test is specifically evaluated on MCSC-ZH.
+To examine model robustness under flexible demands, we conduct a comprehensive long-context stress test from both input and output perspectives. Since ads provide sufficient available material.
 
 **Input-side settings:**
 - **Input ×2:** Increases the average number of shots to 12.43 while maintaining the 4:1 Available-to-Distractor ratio.
@@ -124,7 +103,7 @@ which jointly penalizes material misuse, repetition, and duration deviation. The
 
 ## License, Ethics, and Access
 
-By downloading or using the MCScript dataset, you agree to all the following terms.
+By downloading or using the MCSC-Bench dataset, you agree to all the following terms.
 
 ### Academic Use Only
 This dataset is available for academic research purposes only. Any commercial use is strictly prohibited.
