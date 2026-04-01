@@ -57,6 +57,12 @@ python scripts/inference_with_features.py \
 ### OOD Test set
 In data2, we provide general OOD test set. It is designed for direct inference with any multimodal large language model without pre-extracted features. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip [data2/frames.zip](https://huggingface.co/datasets/KevinHu0218/MCSC/blob/main/data2/frames.zip) and unzip it to the frames/ directory.
 
+## Models
+
+Our Evaluator Model: https://huggingface.co/KevinHu0218/MCSC_evaluator
+MCSC-8B: https://huggingface.co/KevinHu0218/MCSC-8B
+
+
 
 ## Additional Main Results
 
