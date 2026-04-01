@@ -1,4 +1,4 @@
-# MCScript: Benchmarking Realistic Video Script Creation from Multimodal Long Contexts
+# MCSC-Bench: Multimodal Context-to-Script Creation for Realistic Video Production
 
 **Huanran Hu, Zihui Ren, Dingyi Yang, Liangyu Chen, Qixiang Gao, Tiezheng Ge, Qin Jin**
 
@@ -7,11 +7,14 @@ For more details on dataset contruction, Evaluator–Human Agreement, etc, pleas
 For more details on dataset annotation, human evaluation, additional case studies, etc, please refer to [supplementary material](supplementary.pdf).
 
 
-## MCSCript
+## MCSC-Bench
 
-### MCSC-ZH
+Download link: https://huggingface.co/datasets/KevinHu0218/MCSC.
+
+### In-Domain set
 
 We provides pre-extracted Qwen3-VL visual features including two formats. Features are stored in safetensors format, enabling inference without raw video files or the Vision Encoder.
+
 
 #### Data Description
 
@@ -65,15 +68,16 @@ You can customize prefix_prompt and suffix_prompt, using video_material, instruc
 ```bash
 python scripts/inference_with_features.py \
     --video_id 286638572610 \
-    --features_root ./data/MCSC-ZH-features \
+    --features_root ./MCSC \
     --all_input_json ./MCSC-ZH/input.json \
     --prefix_prompt "..." \
     --suffix_prompt "..." \
     --max_new_tokens 4096
 ```
 
-### MCSC-GEN
+### OOD Test set
 MCSC-GEN is designed for **direct inference with any multimodal large language model** without pre-extracted features. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip `MCSC-GEN/frames.zip` and unzip it to the `frames/` directory. `iMCSC-GEN/nput.json` contains all samples, where each item includes a `name_image_list` (interleaved video clip IDs and frame paths), `video_material` (video clip inventory with durations), `text_material` (text reference material), and `instruction` (user instruction). When constructing model input, follow the `name_image_list` order to build an **image-text interleaved** sequence: clip IDs (e.g., `"1.mp4"`) serve as text markers and frame paths are loaded as images. `MCSC-GEN/metadata.json` provides additional annotations: `distractor` indicates which clips are irrelevant distractor material, and `duration` specifies the target video length in seconds.
+
 
 ## Additional Main Results
 
@@ -83,19 +87,13 @@ Overview of the MCScript dataset construction. Video materials are drawn from a 
 
 ![pipeline](images/pipeline.png)
 
-### Dataset Statistics
-
-(a) Distribution of total video duration. (b) Distribution of shot duration. (c) Word cloud of video types in MCSC-Bench.
-
-![stat](images/stat.png)
-
 ### Multi-Dimensional Evaluation
 
 Multi-dimensional evaluation on MCSC-Bench (rescaled by maximum and minimum for better visualization) shows a clear performance ladder across models.
 
 ![radar](images/radar.png)
 
-### Full Results on MCSC-GEN
+### Full Results on Out-of-Domain Test
 
 Due to page limits in the main paper, we only report partial MCSC-GEN results. Below we list the complete performance of all evaluated models on MCSC-GEN.
 
@@ -122,11 +120,6 @@ which jointly penalizes material misuse, repetition, and duration deviation. The
 
 ![long_context](images/long_context.png)
 
-### Video Generation Case Study
-
-Qualitative analysis of downstream video generation from model-produced scripts.
-
-![generation](images/generation.png)
 
 
 ## License, Ethics, and Access
