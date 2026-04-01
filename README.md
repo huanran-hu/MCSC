@@ -3,11 +3,11 @@
 **Huanran Hu, Zihui Ren, Dingyi Yang, Liangyu Chen, Qixiang Gao, Tiezheng Ge, Qin Jin**
 
 ## Overview
-For more details on dataset contruction, Evaluator–Human Agreement, etc, please refer to [Additional Main Results](## Additional Main Results).
+For more details on dataset contruction, Evaluator–Human Agreement, etc, please refer to [Additional Main Results](#additional-main-results).
 For more details on dataset annotation, human evaluation, additional case studies, etc, please refer to [supplementary material](supplementary.pdf).
 
 
-## MCSC-GEN
+## MCSCript
 
 ### MCSC-ZH
 
