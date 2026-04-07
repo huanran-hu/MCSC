@@ -8,8 +8,8 @@ for inference. Supports: multi-video, multi-frame, image-text interleaved input.
 Usage:
     python scripts/inference_with_features.py \
         --video_id 286638572610 \
-        --features_root ./data/MCSC-ZH-features \
-        --all_input_json ./data/MCSC-ZH/all_input.json \
+        --features_root ./data/In-Domain_test-features \
+        --all_input_json ./data/In-Domain_test/input.json \
         --model_name Qwen/Qwen3-VL-8B-Instruct \
         --max_new_tokens 2048
 """
@@ -88,7 +88,7 @@ class FeatureLoader:
         dtype: torch.dtype = torch.bfloat16,
     ) -> list[dict]:
         """
-        Load features according to the name_image_list from all_input.json.
+        Load features according to the name_image_list from input.json.
 
         The name_image_list interleaves video clip names (e.g., "1.mp4") and
         feature file paths (e.g., "286638572610/features/1_2/000001/features.safetensors").
@@ -383,8 +383,8 @@ def main():
 Example:
     python scripts/inference_with_features.py \\
         --video_id 286638572610 \\
-        --features_root ./data/MCSC-ZH-features \\
-        --all_input_json ./data/MCSC-ZH/all_input.json \\
+        --features_root ./data/features \\
+        --all_input_json ./In-Domain_test/input.json \\
         --model_name Qwen/Qwen3-VL-8B-Instruct \\
         --suffix_prompt "Please describe these video clips in detail."
         """,
@@ -397,11 +397,11 @@ Example:
     )
     parser.add_argument(
         "--features_root", type=str, required=True,
-        help="Root directory of downloaded features, e.g., ./data/MCSC-ZH-features",
+        help="Root directory of downloaded features, e.g., ./data/In-Domain_test-features",
     )
     parser.add_argument(
         "--all_input_json", type=str, required=True,
-        help="Path to all_input.json, e.g., ./data/MCSC-ZH/all_input.json",
+        help="Path to input.json, e.g., ./data/In-Domain_test/input.json",
     )
 
     # Model arguments
@@ -457,7 +457,7 @@ Example:
     )
     parser.add_argument(
         "--use_instruction_from_json", action="store_true",
-        help="Use the 'instruction' field from all_input.json as suffix_prompt (if --suffix_prompt not set)",
+        help="Use the 'instruction' field from input.json as suffix_prompt (if --suffix_prompt not set)",
     )
 
     args = parser.parse_args()
@@ -473,15 +473,15 @@ Example:
             args.suffix_prompt = f.read().strip()
         logger.info(f"Loaded suffix_prompt from file: {args.suffix_prompt_file}")
 
-    # ---- 1. Load all_input.json ----
-    logger.info(f"Loading all_input.json from: {args.all_input_json}")
+    # ---- 1. Load input.json ----
+    logger.info(f"Loading input.json from: {args.all_input_json}")
     with open(args.all_input_json, "r", encoding="utf-8") as f:
         all_input = json.load(f)
 
     video_id = args.video_id
     if video_id not in all_input:
         logger.error(
-            f"Video ID '{video_id}' not found in all_input.json. "
+            f"Video ID '{video_id}' not found in input.json. "
             f"Available IDs: {list(all_input.keys())[:10]}..."
         )
         return
@@ -519,7 +519,7 @@ Example:
         suffix_prompt = args.suffix_prompt
     elif args.use_instruction_from_json and "instruction" in video_info:
         suffix_prompt = video_info["instruction"]
-        logger.info("Using 'instruction' from all_input.json as suffix_prompt")
+        logger.info("Using 'instruction' from input.json as suffix_prompt")
     else:
         suffix_prompt = "Please analyze these video clips."
 

@@ -1,19 +1,18 @@
 # MCSC-Bench: Multimodal Context-to-Script Creation for Realistic Video Production
 
 **Huanran Hu, Zihui Ren, Dingyi Yang, Liangyu Chen, Qixiang Gao, Tiezheng Ge, Qin Jin**
+Renmin University of China, Alibaba Group, Nanyang Technological University
 
-## Overview
-For more details on dataset contruction, Evaluator–Human Agreement, etc, please refer to [Additional Main Results](#additional-main-results).
+##  Supplementary Material
 For more details on dataset annotation, human evaluation, additional case studies, etc, please refer to [supplementary material](supplementary.pdf).
 
+## MCSC-Bench Release :loudspeaker:
 
-## MCSC-Bench
+Download link: https://huggingface.co/datasets/huanranhu-ruc/MCSC.
 
-Download link: https://huggingface.co/datasets/KevinHu0218/MCSC.
+### In-Domain Test
 
-### In-Domain set
-
-We provides pre-extracted Qwen3-VL visual features including two formats. Features are stored in safetensors format, enabling inference without raw video files or the Vision Encoder.
+We provides pre-extracted **Qwen3-VL-8B** visual features including two formats: (ViT output before the Merger and output after the Merger),  and **Qwen2.5-VL-7B** (ViT output). Features are stored in safetensors format, enabling inference without raw video files or the Vision Encoder.
 
 #### Quick Start
 
@@ -38,29 +37,38 @@ pip install flash-attn --no-build-isolation
 pip install -r requirements.txt
 ```
 
-3. Download the data
-
-Download the pre-extracted features from the link below and unzip: https://huggingface.co/datasets/KevinHu0218/MCSC.
+3. Download the data: Download the pre-extracted features from the link below and unzip: https://huggingface.co/datasets/huanranhu-ruc/MCSC/In-Domain_test.
 
 4. Run inference
-You can customize prefix_prompt and suffix_prompt, using video_material, instruction, and text_material in data1/input.json.
+You can customize prefix_prompt and suffix_prompt to compose, using video_material, instruction, and text_material in `In-Domain_test/input.json`. `scripts/inference_with_features.py` is for performing a sample inference, using **Qwen3-VL-8B**  Merger output:
+
 ```bash
 python scripts/inference_with_features.py \
     --video_id 286638572610 \
     --features_root ./MCSC \
-    --all_input_json ./MCSC-ZH/input.json \
+    --all_input_json ./In-Domain_test/input.json \
     --prefix_prompt "..." \
     --suffix_prompt "..." \
     --max_new_tokens 4096
 ```
 
-### OOD Test set
-In data2, we provide general OOD test set. It is designed for direct inference with any multimodal large language model without pre-extracted features. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip [data2/frames.zip](https://huggingface.co/datasets/KevinHu0218/MCSC/blob/main/data2/frames.zip) and unzip it to the frames/ directory.
+### Out-Of-Domain Test
+In Out-Of-Domain_test, we provide general OOD test set. It is designed for direct inference. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip [Out-Of-Domain_test/frames.zip](https://huggingface.co/datasets/huanranhu-ruc/MCSC/blob/main/Out-Of-Domain_test/frames.zip) and unzip it to the frames/ directory. 
+You can also customize prefix_prompt and suffix_prompt.
+
+### Train
+https://huggingface.co/datasets/huanranhu-ruc/MCSC/tree/main/train
+
+### Eval
+
+
+
 
 ## Models
 
-Our Evaluator Model: https://huggingface.co/KevinHu0218/MCSC_evaluator
-MCSC-8B: https://huggingface.co/KevinHu0218/MCSC-8B
+Our Evaluator Model: https://huggingface.co/huanranhu-ruc/MCSC_evaluator
+
+Our Trained Model on the MCSC-Bench train set: MCSC-8B: https://huggingface.co/huanranhu-ruc/MCSC-8B
 
 
 
@@ -84,31 +92,12 @@ Due to page limits in the main paper, we only report partial results. Below we l
 
 ![English](images/English.png)
 
-### Long-Context Stress Test
-
-To examine model robustness under flexible demands, we conduct a comprehensive long-context stress test from both input and output perspectives. Since ads provide sufficient available material.
-
-**Input-side settings:**
-- **Input ×2:** Increases the average number of shots to 12.43 while maintaining the 4:1 Available-to-Distractor ratio.
-- **Noise 1:1:** Increases distractor materials to match the number of available materials.
-
-**Output-side settings:**
-- Models are required to produce scripts with **Duration ×2** and **Duration ×4** relative to the target length.
-
-To provide a holistic assessment and discourage degenerate strategies (e.g., trivially short outputs yielding low error rates), we define an Overall Score:
-
-$$\text{Overall} = (1 - Err) \times (1 - Rep) \times \frac{1}{1 + \Delta T}$$
-
-which jointly penalizes material misuse, repetition, and duration deviation. The continuous penalty term 1/(1+ΔT) prevents the factor from collapsing to zero when ΔT fluctuates significantly, while Err and Rep are guaranteed to remain positive by their respective definitions.
-
-**Analysis.** Performance decreases under most stress settings. Qwen3-VL-8B exhibits notable sensitivity to both input noise and output length. Qwen2.5-VL-72B is relatively robust to increased input noise but degrades substantially when longer outputs are required. In contrast, Gemini-2.5-Pro shows more stable performance across all dimensions. Overall, sustaining effective material selection and planning over extended input and output horizons remains challenging for current MLLMs.
-
-![long_context](images/long_context.png)
-
-
 
 ## License, Ethics, and Access
 
+This dataset is released under the CC BY-NC-ND 4.0 License, with additional restrictions. Specifically: (1) Attribution — proper credit must be given when using this dataset; (2) NonCommercial — only academic and research use is permitted; (3) NoDerivatives & No Redistribution — the dataset may not be redistributed, remixed, or adapted without prior written consent. We adopt this license to protect source data privacy and comply with upstream platform terms of service. The accompanying source code is released under the MIT License.
+
+This research was conducted in strict adherence to the Code of Ethics and Professional Conduct. All data used in this work derived from publicly available websites and does not contain personally identifiable information or offensive content. For human evaluation, the annotators we recruited possess a high level of education. They were fairly compensated for their time and effort in rating the generated scripts according to our multi-dimensional evaluation criteria.
 By downloading or using the MCSC-Bench dataset, you agree to all the following terms.
 
 ### Academic Use Only
@@ -118,11 +107,14 @@ This dataset is available for academic research purposes only. Any commercial us
 You may not redistribute the dataset in any form without prior written consent from the authors.
 
 ### Privacy Protection
-Chinese data is derived from e-commerce videos under authorized institutional access. All visual content is released exclusively as de-identified features extracted via the Qwen3-VL-8B vision encoder; no raw images or videos are distributed for privacy reasons. Researchers requiring features from alternative encoders (e.g., Qwen2.5-VL) may contact us at [huanranhu@ruc.edu.cn] for assistance.
+Chinese data is derived from e-commerce videos under authorized institutional access. All visual content is released exclusively as de-identified features extracted via the frequently-used vision encoders (e.g., Qwen3-VL-8B, Qwen2.5-VL-7B); no raw images or videos are distributed for privacy reasons. Researchers requiring features from alternative encoders may contact us at [huanranhu@ruc.edu.cn] for assistance.
 
 ### Copyright and Takedown Policy
-MCSC-GEN contains sampled frames from publicly available YouTube and TikTok videos. We reference the Vript dataset for video selection; all video content is  sourced from public platforms. We respect the privacy of personal information of the original source. If you are a copyright holder and believe any content infringes your rights, please contact [huanranhu@ruc.edu.cn].
+Out-Of-Domain test set contains sampled frames from publicly available YouTube and TikTok videos. We reference the Vript dataset for video selection; all video content is  sourced from public platforms. We respect the privacy of personal information of the original source. If you are a copyright holder and believe any content infringes your rights, please contact [huanranhu@ruc.edu.cn].
 
 ### Disclaimer
 You are solely responsible for legal liability arising from your use of this dataset. The authors reserve the right to modify or terminate access at any time and shall not be liable for any damages arising from its use.
+
+
+
 
