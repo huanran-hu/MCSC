@@ -4,6 +4,19 @@
 
 Renmin University of China, Alibaba Group, Nanyang Technological University
 
+## 📋 Table of Contents
+
+- [Supplementary Material](#supplementary-material)
+- [MCSC-Bench Release 📢](#mcsc-bench-release-)
+  - [In-Domain Test](#in-domain-test)
+  - [Out-Of-Domain Test](#out-of-domain-test)
+  - [Train](#train)
+  - [Eval](#eval)
+- [Models](#models)
+- [Additional Main Results](#additional-main-results)
+- [License, Ethics, and Access](#license-ethics-and-access)
+
+
 ##  Supplementary Material
 For more details on dataset annotation, human evaluation, additional case studies, etc, please refer to [supplementary material](supplementary.pdf).
 
@@ -128,7 +141,6 @@ project_root/
 | `num_train_epochs` | `3` | Total training epochs |
 
 Prompts are loaded from `prompt/compose.py` by default. To override, uncomment the `prompt:` section in `config.yaml`.
-```
 
 ### Eval
 
@@ -150,8 +162,9 @@ where `--script` is the generated script JSON file, `--metadata` is the metadata
 #### Multi-dimensional Metrics
 
 We use our evaluator (based on Qwen2.5-VL-7B-Instruct) as the evaluation judge to score a generated script across **6 dimensions**. 
-Download our evaluator model: https://huggingface.co/huanranhu-ruc/MCSC_evaluator
-For each dimension, the model receives the original video frames (as pre-extracted visual features), the text/video materials, user instruction, and the generated script, then outputs an analysis along with a score from 1 to 5. All 6 scores and their raw responses are saved into a single JSON file.
+Download our [evaluator model](https://huggingface.co/huanranhu-ruc/MCSC_evaluator).
+
+For each dimension, the model receives [Qwen2.5-VL pre-extracted features](https://huggingface.co/datasets/huanranhu-ruc/MCSC/tree/main/In-Domain_test/Qwen2.5-VL-7B), the text/video materials, user instruction, and the generated script, then outputs an analysis along with a score from 1 to 5. All 6 scores and their raw responses are saved into a single JSON file.
 > For Qwen2.5-VL, `transformers==4.51.3` is recommended.
 
 ```bash
