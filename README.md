@@ -1,6 +1,7 @@
 # MCSC-Bench: Multimodal Context-to-Script Creation for Realistic Video Production
 
 **Huanran Hu, Zihui Ren, Dingyi Yang, Liangyu Chen, Qixiang Gao, Tiezheng Ge, Qin Jin**
+
 Renmin University of China, Alibaba Group, Nanyang Technological University
 
 ##  Supplementary Material
@@ -36,39 +37,144 @@ pip install flash-attn --no-build-isolation
 # Install other dependencies
 pip install -r requirements.txt
 ```
+> For Qwen3-VL, `transformers==4.57.1` is recommended.
+> For Qwen2.5-VL, `transformers==4.51.3` is recommended.
 
 3. Download the data: Download the pre-extracted features from the link below and unzip: https://huggingface.co/datasets/huanranhu-ruc/MCSC/In-Domain_test.
 
 4. Run inference
-You can customize prefix_prompt and suffix_prompt to compose, using video_material, instruction, and text_material in `In-Domain_test/input.json`. `scripts/inference_with_features.py` is for performing a sample inference, using **Qwen3-VL-8B**  Merger output:
+`scripts/infer.py` is for performing a sample inference, using **Qwen3-VL-8B** Merger output. You can custimze prompts in `prompt/compose.py`.
 
 ```bash
-python scripts/inference_with_features.py \
+python script/infer.py \
     --video_id 286638572610 \
-    --features_root ./MCSC \
+    --features_root $FEATURES_DIR \
     --all_input_json ./In-Domain_test/input.json \
-    --prefix_prompt "..." \
-    --suffix_prompt "..." \
-    --max_new_tokens 4096
+    --model_name Qwen/Qwen3-VL-8B-Instruct \
+    --max_new_tokens $MAX_NEW_TOKENS  \
+    --output_path $OUTPUT_PATH \
+    --device cuda
 ```
 
 ### Out-Of-Domain Test
-In Out-Of-Domain_test, we provide general OOD test set. It is designed for direct inference. Each sample contains frames from multiple video clips along with structured textual inputs. Unzip [Out-Of-Domain_test/frames.zip](https://huggingface.co/datasets/huanranhu-ruc/MCSC/blob/main/Out-Of-Domain_test/frames.zip) and unzip it to the frames/ directory. 
-You can also customize prefix_prompt and suffix_prompt.
+
+In Out-Of-Domain_test, we provide general OOD test set. It is designed for direct inference. Each sample contains frames from multiple video clips along with structured textual inputs. Download [Out-Of-Domain_test/frames.zip](https://huggingface.co/datasets/huanranhu-ruc/MCSC/blob/main/Out-Of-Domain_test/frames.zip) and unzip it to the frames/ directory. 
+You can also customize interleaved image-text prompt, using name_image_list (interleaved clip IDs and frame paths), video_material (clip inventory with durations), text_material (textual reference), and instruction (user instruction) in `Out-Of-Domain_test/input.json`.
 
 ### Train
 https://huggingface.co/datasets/huanranhu-ruc/MCSC/tree/main/train
 
+Fine-tune Qwen3-VL (Merger + LLM) using pre-extracted ViT features. The ViT encoder is frozen, so training only updates the **Merger** and **LLM** — significantly reducing GPU memory and compute.
+
+#### Prerequisites
+
+```bash
+pip install transformers==4.57.1 torch>=2.6.0 deepspeed>=0.16.0 \
+            safetensors pyyaml flash-attn tensorboard
+```
+
+#### Directory Structure
+
+```
+project_root/
+├── prompt/
+│   └── compose.py              # PREFIX_PROMPT, SUFFIX_PROMPT
+├── train/
+│   ├── train.py                # Main training script
+│   ├── dataset.py              # Dataset & DataCollator
+│   ├── config.yaml             # All configurations
+│   ├── ds_config.json          # DeepSpeed ZeRO-2 config
+│   ├── input.json          # DeepSpeed ZeRO-2 config
+│   └── run.sh                  # Launch script
+├── {feature_root}/             # Pre-extracted features
+│   ├── {sample_id}/
+│   │   ├── features/
+│   │   │   ├── 1_1/000001/features.safetensors
+│   │   │   └── ...
+│   │   └── gt_script.json      # Ground truth script
+│   └── ...
+```
+
+#### Quick Start
+
+
+1. **Edit config** — update paths in `train/config.yaml`:
+   ```yaml
+   data:
+     input_json: "/path/to/input.json"
+     feature_root: "/path/to/feature_root"
+   ```
+
+2. **Run training** (8x A100-80GB):
+   ```bash
+   # From project root
+   cd /path/to/project_root
+   bash train/run.sh
+   ```
+   Or launch manually:
+   ```bash
+   deepspeed --num_gpus=8 train/train.py --config train/config.yaml
+   ```
+
+#### Key Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `max_frames_per_video` | `8` | Max frames per video; uniformly sampled if exceeded |
+| `max_seq_length` | `8192` | Max token length; longer sequences are truncated |
+| `learning_rate` | `1e-5` | AdamW learning rate |
+| `per_device_train_batch_size` | `1` | Batch size per GPU |
+| `gradient_accumulation_steps` | `4` | Effective batch = 1 × 8 GPUs × 4 = 32 |
+| `num_train_epochs` | `3` | Total training epochs |
+
+Prompts are loaded from `prompt/compose.py` by default. To override, uncomment the `prompt:` section in `config.yaml`.
+```
+
 ### Eval
 
+#### Automatic Rule-based Metrics
 
 
+```bash
+python script/eval_rule.py \
+  --script    path/to/generated_script.json \
+  --metadata  In-Domain_test/metadata.json \
+  --sample_id 286638572610 \
+  --output    path/to/result.json
+```
+
+where `--script` is the generated script JSON file, `--metadata` is the metadata file containing distractor clip IDs and target duration for each sample, `--sample_id` specifies which sample to evaluate, and `--output` is the path to save the result. The output is a JSON file with three fields: `Err`, `Rep`, and `T` (all lower is better).
+
+
+
+#### Multi-dimensional Metrics
+
+We use our evaluator (based on Qwen2.5-VL-7B-Instruct) as the evaluation judge to score a generated script across **6 dimensions**. 
+Download our evaluator model: https://huggingface.co/huanranhu-ruc/MCSC_evaluator
+For each dimension, the model receives the original video frames (as pre-extracted visual features), the text/video materials, user instruction, and the generated script, then outputs an analysis along with a score from 1 to 5. All 6 scores and their raw responses are saved into a single JSON file.
+> For Qwen2.5-VL, `transformers==4.51.3` is recommended.
+
+```bash
+python scripts/eval_multi_dimension.py \
+    --video_id 286638572610 \
+    --features_root $FEATURES_DIR \
+    --all_input_json ./In-Domain_test/input.json \
+    --model_name path_to_our_evaluator \
+    --max_new_tokens 4096 \
+    --script_path ./path/to/script.json \
+    --output_path ./path/to/eval_result.json \
+    --device cuda
+```
 
 ## Models
 
-Our Evaluator Model: https://huggingface.co/huanranhu-ruc/MCSC_evaluator
+Our Evaluator Model:
 
-Our Trained Model on the MCSC-Bench train set: MCSC-8B: https://huggingface.co/huanranhu-ruc/MCSC-8B
+https://huggingface.co/huanranhu-ruc/MCSC_evaluator
+
+Our Trained Model on the MCSC-Bench train set: 
+
+MCSC-8B: https://huggingface.co/huanranhu-ruc/MCSC-8B
 
 
 
@@ -103,18 +209,14 @@ By downloading or using the MCSC-Bench dataset, you agree to all the following t
 ### Academic Use Only
 This dataset is available for academic research purposes only. Any commercial use is strictly prohibited.
 
-### No Redistribution
+### No Redistribution Without Permission
 You may not redistribute the dataset in any form without prior written consent from the authors.
 
 ### Privacy Protection
 Chinese data is derived from e-commerce videos under authorized institutional access. All visual content is released exclusively as de-identified features extracted via the frequently-used vision encoders (e.g., Qwen3-VL-8B, Qwen2.5-VL-7B); no raw images or videos are distributed for privacy reasons. Researchers requiring features from alternative encoders may contact us at [huanranhu@ruc.edu.cn] for assistance.
 
-### Copyright and Takedown Policy
+### Copyright
 Out-Of-Domain test set contains sampled frames from publicly available YouTube and TikTok videos. We reference the Vript dataset for video selection; all video content is  sourced from public platforms. We respect the privacy of personal information of the original source. If you are a copyright holder and believe any content infringes your rights, please contact [huanranhu@ruc.edu.cn].
 
 ### Disclaimer
 You are solely responsible for legal liability arising from your use of this dataset. The authors reserve the right to modify or terminate access at any time and shall not be liable for any damages arising from its use.
-
-
-
-

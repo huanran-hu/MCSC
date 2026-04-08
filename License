@@ -1,0 +1,161 @@
+================================================================================
+MCSC-Bench License
+================================================================================
+
+This repository contains both source code and a dataset (the "MCSC-Bench
+dataset"). These components are governed by separate licenses as detailed below.
+
+================================================================================
+PART I — SOURCE CODE LICENSE (MIT License)
+================================================================================
+
+MIT License
+
+Copyright (c) 2025 MCSC-Bench Authors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+PART II — DATASET LICENSE
+================================================================================
+
+Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 International
+(CC BY-NC-ND 4.0)
+
+Full license text: https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode
+
+The MCSC-Bench dataset is licensed under the Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International License, with
+additional terms and conditions set forth below. In the event of any conflict
+between the CC BY-NC-ND 4.0 terms and the additional terms below, the more
+restrictive provision shall prevail.
+
+By downloading or using the MCSC-Bench dataset, you understand, acknowledge,
+and agree to all of the following terms.
+
+--------------------------------------------------------------------------------
+1. Academic Use Only
+--------------------------------------------------------------------------------
+
+   This dataset is available for academic research purposes only. Any
+   commercial use, in whole or in part, is strictly prohibited.
+
+--------------------------------------------------------------------------------
+2. No Redistribution Without Permission
+--------------------------------------------------------------------------------
+
+   You may not redistribute, republish, or share the dataset in any form
+   (original, modified, or partial) without prior written consent from the
+   authors. This restriction supplements the NoDerivatives clause of
+   CC BY-NC-ND 4.0 and extends it to cover verbatim redistribution as well.
+
+--------------------------------------------------------------------------------
+3. Attribution
+--------------------------------------------------------------------------------
+
+   Proper credit must be given when using this dataset in any publication,
+   presentation, or derivative research output. You must cite the original
+   paper and provide a link to this repository.
+
+--------------------------------------------------------------------------------
+4. Privacy Protection
+--------------------------------------------------------------------------------
+
+   Chinese data is derived from e-commerce videos under authorized
+   institutional access. All visual content is released exclusively as
+   de-identified features extracted via frequently-used vision encoders
+   (e.g., Qwen3-VL-8B, Qwen2.5-VL-7B); no raw images or videos are
+   distributed for privacy reasons.
+
+   Researchers requiring features from alternative encoders may contact us
+   at huanranhu@ruc.edu.cn for assistance.
+
+--------------------------------------------------------------------------------
+5. Copyright & Third-Party Content
+--------------------------------------------------------------------------------
+
+   The Out-Of-Domain test set contains sampled frames from publicly available
+   YouTube and TikTok videos. We reference the Vript dataset for video
+   selection; all video content is sourced from public platforms. We respect
+   the privacy of personal information of the original source.
+
+   If you are a copyright holder and believe any content in this dataset
+   infringes your rights, please contact huanranhu@ruc.edu.cn. Infringing
+   content will be promptly reviewed and removed upon valid notification.
+
+   You must also comply with all terms and conditions of the original
+   upstream platform licenses, including but not limited to the Copyright
+   Rules & Policies of YouTube and TikTok.
+
+--------------------------------------------------------------------------------
+6. Ethics Statement
+--------------------------------------------------------------------------------
+
+   This research was conducted in strict adherence to established codes of
+   ethics and professional conduct. All data used in this work is derived
+   from publicly available websites and does not contain personally
+   identifiable information or offensive content.
+
+   For human evaluation, the annotators recruited possess a high level of
+   education. They were fairly compensated for their time and effort in
+   rating the generated scripts according to multi-dimensional evaluation
+   criteria.
+
+--------------------------------------------------------------------------------
+7. Disclaimer of Warranty
+--------------------------------------------------------------------------------
+
+   THE DATASET IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+--------------------------------------------------------------------------------
+8. Limitation of Liability
+--------------------------------------------------------------------------------
+
+   IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
+   OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE DATASET OR
+   THE USE OR OTHER DEALINGS IN THE DATASET, INCLUDING BUT NOT LIMITED TO
+   ANY DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES.
+
+--------------------------------------------------------------------------------
+9. Termination & Modification
+--------------------------------------------------------------------------------
+
+   The authors reserve the right to modify these terms or terminate your
+   access to the dataset at any time. Upon termination, you must immediately
+   cease all use and destroy any copies of the dataset in your possession.
+
+--------------------------------------------------------------------------------
+10. Governing Responsibility
+--------------------------------------------------------------------------------
+
+   You are solely responsible for any legal liability arising from your use
+   of this dataset. It is your responsibility to ensure that your use
+   complies with all applicable laws and regulations.
+
+================================================================================
+Contact
+================================================================================
+
+For questions regarding licensing, permissions, or copyright concerns,
+please contact: huanranhu@ruc.edu.cn
+
+================================================================================

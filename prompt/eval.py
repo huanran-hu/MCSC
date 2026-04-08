@@ -1,9 +1,9 @@
-EVAL_PROMPT = """
+PREFIX_PROMPT = """
 你是一位顶级的短视频剧本设计大师。你的核心任务是，基于提供的原始素材和用户指令，对一个短视频剧本进行全面、深度、专业的评估。该短视频剧本是基于已有的视频素材和文本素材，根据用户指令，进行素材筛选与排序、构思叙事、镜头创作得到的。
 
 ---
 ### **该剧本是基于以下输入内容创作的:**
-- 视频素材（以视频帧形式给出，可能有与用户指令不相关的干扰素材，需要筛选掉）：<video_materials>
+- 视频素材（以视频帧形式给出，可能有与用户指令不相关的干扰素材，需要筛选掉）：<video_material>
 - 文本素材：<text_material>
 - 用户指令：<instruction>
 ---
@@ -11,63 +11,12 @@ EVAL_PROMPT = """
 视频素材帧如下：
 """
 
-EVAL_POST_PROMPT = '''---
+
+EVAL_IF_PROMPT = '''---
 剧本包含两种镜头：
-1.  **素材镜头**: 使用了`<video_materials>`中的内容，带有`material_usage`字段。
+1.  **素材镜头**: 使用了视频素材，带有`material_usage`字段。
 2.  **创作镜头**: 为了补充叙事、连贯性而全新创作的镜头，没有`material_usage`字段。
-你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。素材镜头占比应在0.3~0.9左右。
-
-
-### **剧本：**
-<script>
-
-### **评估：**
-从以下五个维度进行评估。每个维度的评分范围为 1-5 分（1=严重缺陷, 2=不理想, 3=基本合格, 4=良好, 5=非常出色）。
-请综合考虑这两种镜头，从以下角度评分，每项评分彼此之间互不干扰：
-
-1.  **指令遵循力 (Instruction Following)**: 剧本是否严格遵循并实现了用户指令：核心主题、文本素材是否被准确传达？风格、受众等要求是否满足？是否按要求进行了素材筛选？没有使用不相关的视频素材。
-2.  **叙事吸引力 (Attractiveness)**: 剧情、文案和画面设计是否足够新颖、引人入胜，能否有效抓住目标观众的注意力？
-3.  **文案连贯性 (Copywriting Coherence)**: 各个镜头的配音（dub）在内容上是否统一、衔接流畅？文案质量是否够高？
-4.  **视觉流畅性 (Visual Fluency)**: 所有镜头之间的转场和衔接是否自然流畅，使得观众获得整体良好的视觉观感？
-5.  **音画同步性 (Audio-Visual Sync)**: 每个镜头的配音（dub）和画面（visual或视频素材）是否高度匹配：配音的内容是否与画面一致？配音时长与镜头时长是否合理对应？
-6.  **创作必要性 (Necessity)**: 创作的新镜头（无`material_usage`的镜头）是否具有必要性？是否有效地填补了现有素材的空白？是否存在放弃了合适的可用素材，而去拍摄一个新素材的错误情况？
-
-### **输出格式：**
-⚠️注意转义字符，引号，括号等json格式的使用，不要出现json解析失败的问题
-
-{
-    "instruction_following": {
-        "reason": "[分析过程]",
-        "score": <1-5的整数>
-    },
-    "attractiveness": {
-        "reason": "[分析过程]",
-        "score": <1-5的整数>
-    },
-    "copywriting_coherence": {
-        "reason": "[分析过程]",
-        "score": <1-5的整数>
-    },
-    "visual_fluency": {
-        "reason": "[分析过程]",
-        "score": <1-5的整数>
-    }
-    "audio-visual_sync": {
-        "reason": "[分析过程]",
-        "score": <1-5的整数>
-    }
-    "necessity": {
-        "reason": "[分析过程]",
-        "score": <1-5的整数>
-    }
-}
-'''
-
-EVAL_if_PROMPT = '''---
-剧本包含两种镜头：
-1.  **素材镜头**: 使用了`<video_materials>`中的内容，带有`material_usage`字段。
-2.  **创作镜头**: 为了补充叙事、连贯性而全新创作的镜头，没有`material_usage`字段。
-你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。素材镜头占比应在0.3~0.9左右。
+你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。视频素材
 
 
 ### **剧本：**
@@ -82,11 +31,11 @@ EVAL_if_PROMPT = '''---
 请必须注意，你的最终输出分数前必须有<score>标识符，否则评测无效！！！
 '''
 
-EVAL_att_PROMPT = '''---
+EVAL_ATT_PROMPT = '''---
 剧本包含两种镜头：
-1.  **素材镜头**: 使用了`<video_materials>`中的内容，带有`material_usage`字段。
+1.  **素材镜头**: 使用了视频素材，带有`material_usage`字段。
 2.  **创作镜头**: 为了补充叙事、连贯性而全新创作的镜头，没有`material_usage`字段。
-你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。素材镜头占比应在0.3~0.9左右。
+你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。视频素材
 
 
 ### **剧本：**
@@ -101,11 +50,11 @@ EVAL_att_PROMPT = '''---
 请必须注意，你的最终输出分数前必须有<score>标识符，否则评测无效！！！
 '''
 
-EVAL_cvt_PROMPT = '''---
+EVAL_CVT_PROMPT = '''---
 剧本包含两种镜头：
-1.  **素材镜头**: 使用了`<video_materials>`中的内容，带有`material_usage`字段。
+1.  **素材镜头**: 使用了视频素材，带有`material_usage`字段。
 2.  **创作镜头**: 为了补充叙事、连贯性而全新创作的镜头，没有`material_usage`字段。
-你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。素材镜头占比应在0.3~0.9左右。
+你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。视频素材
 
 
 ### **剧本：**
@@ -120,11 +69,11 @@ EVAL_cvt_PROMPT = '''---
 请必须注意，你的最终输出分数前必须有<score>标识符，否则评测无效！！！
 '''
 
-EVAL_cvs_PROMPT = '''---
+EVAL_CVS_PROMPT = '''---
 剧本包含两种镜头：
-1.  **素材镜头**: 使用了`<video_materials>`中的内容，带有`material_usage`字段。
+1.  **素材镜头**: 使用了视频素材，带有`material_usage`字段。
 2.  **创作镜头**: 为了补充叙事、连贯性而全新创作的镜头，没有`material_usage`字段。
-你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。素材镜头占比应在0.3~0.9左右。
+你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。视频素材
 
 
 ### **剧本：**
@@ -139,11 +88,11 @@ EVAL_cvs_PROMPT = '''---
 请必须注意，你的最终输出分数前必须有<score>标识符，否则评测无效！！！
 '''
 
-EVAL_vva_PROMPT = '''---
+EVAL_VVA_PROMPT = '''---
 剧本包含两种镜头：
-1.  **素材镜头**: 使用了`<video_materials>`中的内容，带有`material_usage`字段。
+1.  **素材镜头**: 使用了视频素材，带有`material_usage`字段。
 2.  **创作镜头**: 为了补充叙事、连贯性而全新创作的镜头，没有`material_usage`字段。
-你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。素材镜头占比应在0.3~0.9左右。
+你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。视频素材
 
 
 ### **剧本：**
@@ -158,11 +107,11 @@ EVAL_vva_PROMPT = '''---
 请必须注意，你的最终输出分数前必须有<score>标识符，否则评测无效！！！
 '''
 
-EVAL_nc_PROMPT = '''---
+EVAL_NC_PROMPT = '''---
 剧本包含两种镜头：
-1.  **素材镜头**: 使用了`<video_materials>`中的内容，带有`material_usage`字段。
+1.  **素材镜头**: 使用了视频素材，带有`material_usage`字段。
 2.  **创作镜头**: 为了补充叙事、连贯性而全新创作的镜头，没有`material_usage`字段。
-你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。素材镜头占比应在0.3~0.9左右。
+你的评估必须兼顾这两种镜头的融合效果。剧本应该优先使用合适的素材，再进行创作，如果剧本**大部分镜头没有`material_usage`字段，或每个镜头均有`material_usage`字段**，要酌情减分。视频素材
 
 
 ### **剧本：**
@@ -177,10 +126,10 @@ EVAL_nc_PROMPT = '''---
 请必须注意，你的最终输出分数前必须有<score>标识符，否则评测无效！！！
 '''
 single_prompt = {
-    "instruction_following": EVAL_if_PROMPT,
-    "attractiveness": EVAL_att_PROMPT,
-    "copywriting_coherence": EVAL_cvt_PROMPT,
-    "visual_fluency": EVAL_cvs_PROMPT,
-    "audio-visual_sync": EVAL_vva_PROMPT,
-    "necessity": EVAL_nc_PROMPT,
+    "Instruction Following": EVAL_IF_PROMPT,
+    "attractiveness": EVAL_ATT_PROMPT,
+    "Coherence of Voiceover Text": EVAL_CVT_PROMPT,
+    "Coherence of Visual Sequence": EVAL_CVS_PROMPT,
+    "Voiceover-Visual Alignment": EVAL_VVA_PROMPT,
+    "Necessity of Creation": EVAL_NC_PROMPT,
 }

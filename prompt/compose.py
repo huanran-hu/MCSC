@@ -1,16 +1,15 @@
-COMPOSE_PROMPT = """You are a top-tier scriptwriter with precise visual comprehension and exceptional narrative planning abilities. Your core task is to create scripts based on the multimodal materials (videos, text) and user instructions I provide.
+PREFIX_PROMPT = """You are a top-tier scriptwriter with precise visual comprehension and exceptional narrative planning abilities. Your core task is to create scripts based on the multimodal materials (videos, text) and user instructions I provide.
 ### Input Content:
 You need to parse the following structured information:
-- Video material list (provided in the form of video frames): <video_materials>
+- Video material list (provided in the form of video frames): <video_material>
 - Text material: <text_material>
 - User instruction: <instruction>
-
 
 ---
 The video frames are as follows:
 """
 
-COMPOSE_POST_PROMPT = '''---
+SUFFIX_PROMPT = '''---
 ### **Workflow (Think internally before outputting the final JSON):**
 1. **Asset Analysis**: Analyze the visual content, emotional tone, and potential usage of each video asset. Filter materials based on text assets and user instructions.
 2. **Narrative Construction**: Sequence the video assets by combining them with the text materials and user instructions.

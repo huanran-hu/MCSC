@@ -5,6 +5,13 @@ Load pre-extracted visual features (post_merger + deepstack) from safetensors,
 bypass the Vision Encoder, and directly feed them into Qwen3-VL's Language Model
 for inference. Supports: multi-video, multi-frame, image-text interleaved input.
 
+The prompt is constructed by:
+1. Loading PREFIX_PROMPT and SUFFIX_PROMPT from prompt/compose.py
+2. Replacing <video_material>, <text_material>, <instruction> placeholders
+   with actual content from input.json
+3. Appending interleaved video frames (clip_name + frame features)
+4. Appending SUFFIX_PROMPT
+
 Usage:
     python scripts/inference_with_features.py \
         --video_id 286638572610 \
@@ -17,12 +24,28 @@ Usage:
 import json
 import logging
 import os
+import sys
 from pathlib import Path
-from typing import Optional
 
 import torch
 from safetensors.torch import load_file
 from transformers import Qwen3VLForConditionalGeneration, AutoProcessor
+
+# ---------------------------------------------------------------------------
+# Make project root importable so we can do `from prompt.compose import ...`
+# Project structure:
+#   project_root/
+#     prompt/
+#       compose.py          (contains PREFIX_PROMPT, SUFFIX_PROMPT)
+#     scripts/
+#       inference_with_features.py   (this file)
+#     data/
+#       ...
+# ---------------------------------------------------------------------------
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
+
+from prompt.compose import PREFIX_PROMPT, SUFFIX_PROMPT
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,7 +57,6 @@ logger = logging.getLogger("inference")
 # ================================================================
 # Feature Loader
 # ================================================================
-
 class FeatureLoader:
     """Load pre-extracted visual features from safetensors files."""
 
@@ -47,11 +69,6 @@ class FeatureLoader:
         """
         Load a single frame's features from a safetensors file.
 
-        Args:
-            feature_path: Path to features.safetensors file.
-            device: Target device.
-            dtype: Target dtype.
-
         Returns:
             dict with keys:
                 - "post_merger_embeds": Tensor[N, hidden_size]
@@ -60,17 +77,14 @@ class FeatureLoader:
                 - "image_grid_thw": Tensor[1, 3]
         """
         tensors = load_file(feature_path)
-
         result = {
             "post_merger_embeds": tensors["post_merger_embeds"].to(device, dtype=dtype),
             "image_grid_thw": tensors["image_grid_thw"].to(device),
         }
 
-        # pre_merger (optional)
         if "pre_merger_embeds" in tensors:
             result["pre_merger_embeds"] = tensors["pre_merger_embeds"].to(device, dtype=dtype)
 
-        # deepstack features (layer 0, 1, 2, ...)
         ds_features = []
         i = 0
         while f"deepstack_feature_{i:02d}" in tensors:
@@ -88,32 +102,23 @@ class FeatureLoader:
         dtype: torch.dtype = torch.bfloat16,
     ) -> list[dict]:
         """
-        Load features according to the name_image_list from input.json.
+        Load features according to name_image_list from input.json.
 
-        The name_image_list interleaves video clip names (e.g., "1.mp4") and
-        feature file paths (e.g., "286638572610/features/1_2/000001/features.safetensors").
-        This method preserves the interleaved structure.
-
-        Args:
-            name_image_list: List of clip names and feature paths.
-            features_root: Root directory where feature files are stored.
-            device: Target device.
-            dtype: Target dtype.
+        The list interleaves video clip names (e.g. "1.mp4") and feature file
+        paths (e.g. "286638572610/features/1_2/000001/features.safetensors").
 
         Returns:
-            list[dict]: A list of items, each being either:
-                - {"type": "clip_name", "name": "1.mp4"} for video clip markers
-                - {"type": "feature", "name": "...", "data": <feature_dict>} for frames
+            list[dict]: Each item is either:
+                - {"type": "clip_name", "name": "1.mp4"}
+                - {"type": "feature", "name": "...", "data": <feature_dict>}
         """
         items = []
         features_root = Path(features_root)
 
         for entry in name_image_list:
-            if entry.endswith(".mp4") or entry.endswith(".mov") or entry.endswith(".avi"):
-                # This is a video clip name marker
+            if entry.endswith(".mp4"):
                 items.append({"type": "clip_name", "name": entry})
             else:
-                # This is a feature file path
                 full_path = features_root / entry
                 if not full_path.exists():
                     logger.warning(f"Feature file not found, skipping: {full_path}")
@@ -125,23 +130,55 @@ class FeatureLoader:
 
         n_clips = sum(1 for item in items if item["type"] == "clip_name")
         n_frames = sum(1 for item in items if item["type"] == "feature")
-        logger.info(f"Loaded {n_clips} clip markers and {n_frames} frames from name_image_list")
+        logger.info(f"Loaded {n_clips} clip markers and {n_frames} frames")
 
         return items
 
 
 # ================================================================
+# Prompt Builder
+# ================================================================
+def build_prompt_from_input(video_info: dict) -> tuple[str, str]:
+    """
+    Build the prefix and suffix prompts by filling placeholders in
+    PREFIX_PROMPT / SUFFIX_PROMPT with fields from input.json.
+
+    Placeholders replaced in PREFIX_PROMPT:
+        <video_material>  -> video_info["video_material"]
+        <text_material>   -> video_info["text_material"]
+        <instruction>     -> video_info["instruction"]
+
+    The interleaved video frames are NOT part of the prefix string; they are
+    injected separately between the prefix and suffix as image tokens.
+
+    Returns:
+        (prefix_prompt, suffix_prompt)
+    """
+    prefix = PREFIX_PROMPT
+    prefix = prefix.replace("<video_material>", video_info.get("video_material", ""))
+    prefix = prefix.replace("<text_material>", video_info.get("text_material", ""))
+    prefix = prefix.replace("<instruction>", video_info.get("instruction", ""))
+
+    suffix = SUFFIX_PROMPT
+
+    return prefix, suffix
+
+
+# ================================================================
 # Inference Engine
 # ================================================================
-
 class Qwen3VLFeatureInference:
     """
     Inference with pre-extracted visual features on Qwen3-VL.
 
-    Key features:
-    1. Supports multi-image interleaved with text via <|vision_start|>...<|vision_end|>
-    2. Passes deepstack_features to preserve DeepStack effect
-    3. Supports interleaved prompt: clip_name text + frame images
+    Prompt layout fed to the model:
+        <prefix_prompt>
+        1.mp4:
+        <image><image><image>
+        2.mp4:
+        <image><image>...
+        ...
+        <suffix_prompt>
     """
 
     def __init__(
@@ -169,8 +206,8 @@ class Qwen3VLFeatureInference:
         self.vision_start_id = self.tokenizer.convert_tokens_to_ids("<|vision_start|>")
         self.image_pad_id = self.tokenizer.convert_tokens_to_ids("<|image_pad|>")
         self.vision_end_id = self.tokenizer.convert_tokens_to_ids("<|vision_end|>")
-
         self.hidden_size = self.model.config.text_config.hidden_size
+
         logger.info(f"Model loaded. hidden_size={self.hidden_size}")
 
     def _build_interleaved_prompt(
@@ -182,13 +219,12 @@ class Qwen3VLFeatureInference:
         """
         Build input_ids and merged features from interleaved items.
 
-        Prompt structure:
-            [prefix_prompt] + [clip1_name + frame1 + frame2 + ...] + [clip2_name + ...] + [suffix_prompt]
-
-        Args:
-            interleaved_items: Output of FeatureLoader.load_from_name_image_list().
-            prefix_prompt: Text prepended before all visual content.
-            suffix_prompt: Text appended after all visual content.
+        Final message content layout:
+            [prefix_prompt text]
+            [clip_name_1 text] [image] [image] ...
+            [clip_name_2 text] [image] [image] ...
+            ...
+            [suffix_prompt text]
 
         Returns:
             (input_ids, all_image_embeds, merged_grid_thw, all_deepstack_features)
@@ -198,11 +234,11 @@ class Qwen3VLFeatureInference:
         all_grid_thw = []
         all_deepstack_features = []
 
-        # Prefix prompt
+        # --- Prefix prompt (with placeholders already filled) ---
         if prefix_prompt:
             content_parts.append({"type": "text", "text": prefix_prompt})
 
-        # Interleaved clip names and frames
+        # --- Interleaved clip names and frame features ---
         for item in interleaved_items:
             if item["type"] == "clip_name":
                 content_parts.append({
@@ -216,19 +252,19 @@ class Qwen3VLFeatureInference:
                 all_grid_thw.append(feat["image_grid_thw"])
                 all_deepstack_features.append(feat.get("deepstack_features", []))
 
-        # Suffix prompt
+        # --- Suffix prompt ---
         if suffix_prompt:
             content_parts.append({"type": "text", "text": f"\n\n{suffix_prompt}"})
 
+        # Wrap as a chat message and apply chat template
         messages = [{"role": "user", "content": content_parts}]
-
-        # Generate text template via chat_template
         text = self.processor.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True
         )
 
-        # Replace each <|vision_start|><|image_pad|><|vision_end|> segment
-        # with the correct number of <|image_pad|> tokens
+        # Replace each <|vision_start|><|image_pad|><|vision_end|> placeholder
+        # with the correct number of <|image_pad|> tokens matching the actual
+        # feature sequence length of each frame.
         vision_start_token = "<|vision_start|>"
         vision_end_token = "<|vision_end|>"
         image_pad_token = "<|image_pad|>"
@@ -247,10 +283,10 @@ class Qwen3VLFeatureInference:
                 rebuilt_parts.append(remaining)
                 break
 
-            # Text before vision segment
+            # Text before this vision segment
             rebuilt_parts.append(remaining[:vs_pos])
 
-            # Replace with correct number of pad tokens
+            # Build the vision segment with the correct token count
             num_tokens = all_image_embeds[embed_idx].shape[0]
             vision_section = (
                 vision_start_token
@@ -259,11 +295,12 @@ class Qwen3VLFeatureInference:
             )
             rebuilt_parts.append(vision_section)
             embed_idx += 1
+
             remaining = remaining[ve_pos + len(vision_end_token):]
 
         text_rebuilt = "".join(rebuilt_parts)
 
-        # Tokenize
+        # Tokenize the reconstructed text
         input_ids = self.tokenizer.encode(text_rebuilt, return_tensors="pt").to(self.device)
 
         # Merge grid_thw: each is (1, 3) -> (num_images, 3)
@@ -287,15 +324,15 @@ class Qwen3VLFeatureInference:
 
         Args:
             interleaved_items: Output of FeatureLoader.load_from_name_image_list().
-            prefix_prompt: Text prepended before all visual content.
-            suffix_prompt: Text appended after all visual content.
+            prefix_prompt: Filled prefix prompt string.
+            suffix_prompt: Suffix prompt string.
             max_new_tokens: Maximum number of tokens to generate.
             temperature: Sampling temperature.
             top_p: Top-p (nucleus) sampling threshold.
-            do_sample: Whether to use sampling (True) or greedy decoding (False).
+            do_sample: Whether to use sampling or greedy decoding.
 
         Returns:
-            str: Generated text.
+            Generated text string.
         """
         # 1. Build input_ids and features
         input_ids, all_image_embeds, image_grid_thw, all_deepstack = \
@@ -324,14 +361,13 @@ class Qwen3VLFeatureInference:
         # Concatenate all frames' post_merger_embeds into one tensor
         all_embeds_cat = torch.cat(all_image_embeds, dim=0)  # (total_tokens, hidden_size)
 
-        # Replace all image_pad positions with visual embeddings via masked_scatter
+        # Replace all image_pad positions with visual embeddings
         image_mask = (input_ids == self.image_pad_id)
         image_mask_expanded = image_mask.unsqueeze(-1).expand_as(inputs_embeds)
         inputs_embeds = inputs_embeds.masked_scatter(image_mask_expanded, all_embeds_cat)
 
-        # 4. Handle DeepStack features
-        # Merge deepstack: each frame has K layers, align and concatenate across frames
-        # all_deepstack: list[list[Tensor]]  outer=frames, inner=layers
+        # 4. Merge DeepStack features across frames
+        # all_deepstack: list[list[Tensor]], outer=frames, inner=layers
         num_ds_layers = max((len(ds) for ds in all_deepstack), default=0)
         merged_deepstack = None
         if num_ds_layers > 0:
@@ -345,10 +381,6 @@ class Qwen3VLFeatureInference:
                     merged_deepstack.append(torch.cat(layer_features, dim=0))
 
         # 5. Generate
-        # Note: deepstack injection through model.generate is limited when bypassing
-        # the vision encoder. The post_merger embeddings already contain the primary
-        # visual information. DeepStack features are prepared but may require model
-        # modifications to inject during generation.
         gen_kwargs = {
             "inputs_embeds": inputs_embeds,
             "attention_mask": attention_mask,
@@ -370,9 +402,8 @@ class Qwen3VLFeatureInference:
 
 
 # ================================================================
-# Main: Load features + run inference
+# Main
 # ================================================================
-
 def main():
     import argparse
 
@@ -383,28 +414,25 @@ def main():
 Example:
     python scripts/inference_with_features.py \\
         --video_id 286638572610 \\
-        --features_root ./data/features \\
-        --all_input_json ./In-Domain_test/input.json \\
+        --features_root ./data/In-Domain_test-features \\
+        --all_input_json ./data/In-Domain_test/input.json \\
         --model_name Qwen/Qwen3-VL-8B-Instruct \\
-        --suffix_prompt "Please describe these video clips in detail."
+        --max_new_tokens 2048
         """,
     )
 
-    # Required arguments
     parser.add_argument(
         "--video_id", type=str, required=True,
         help="Video ID to process, e.g., 286638572610",
     )
     parser.add_argument(
         "--features_root", type=str, required=True,
-        help="Root directory of downloaded features, e.g., ./data/In-Domain_test-features",
+        help="Root directory of pre-extracted features",
     )
     parser.add_argument(
         "--all_input_json", type=str, required=True,
-        help="Path to input.json, e.g., ./data/In-Domain_test/input.json",
+        help="Path to input.json containing video metadata and name_image_list",
     )
-
-    # Model arguments
     parser.add_argument(
         "--model_name", type=str, default="Qwen/Qwen3-VL-8B-Instruct",
         help="HuggingFace model name or local path (default: Qwen/Qwen3-VL-8B-Instruct)",
@@ -417,26 +445,6 @@ Example:
         "--max_new_tokens", type=int, default=2048,
         help="Maximum number of tokens to generate (default: 2048)",
     )
-
-    # Prompt arguments
-    parser.add_argument(
-        "--prefix_prompt", type=str, default=None,
-        help="Text prepended before all visual content",
-    )
-    parser.add_argument(
-        "--suffix_prompt", type=str, default=None,
-        help="Text appended after all visual content",
-    )
-    parser.add_argument(
-        "--prefix_prompt_file", type=str, default=None,
-        help="File containing prefix prompt (takes precedence over --prefix_prompt)",
-    )
-    parser.add_argument(
-        "--suffix_prompt_file", type=str, default=None,
-        help="File containing suffix prompt (takes precedence over --suffix_prompt)",
-    )
-
-    # Generation arguments
     parser.add_argument(
         "--temperature", type=float, default=0.7,
         help="Sampling temperature (default: 0.7)",
@@ -449,31 +457,14 @@ Example:
         "--no_sample", action="store_true",
         help="Use greedy decoding instead of sampling",
     )
-
-    # Output arguments
     parser.add_argument(
         "--output_path", type=str, default=None,
-        help="Path to save inference result JSON. Default: <features_root>/<video_id>/inference_result.json",
-    )
-    parser.add_argument(
-        "--use_instruction_from_json", action="store_true",
-        help="Use the 'instruction' field from input.json as suffix_prompt (if --suffix_prompt not set)",
+        help="Path to save result JSON. Default: <features_root>/<video_id>/inference_result.json",
     )
 
     args = parser.parse_args()
 
-    # ---- Load prompt from file if provided ----
-    if args.prefix_prompt_file and os.path.exists(args.prefix_prompt_file):
-        with open(args.prefix_prompt_file, "r", encoding="utf-8") as f:
-            args.prefix_prompt = f.read().strip()
-        logger.info(f"Loaded prefix_prompt from file: {args.prefix_prompt_file}")
-
-    if args.suffix_prompt_file and os.path.exists(args.suffix_prompt_file):
-        with open(args.suffix_prompt_file, "r", encoding="utf-8") as f:
-            args.suffix_prompt = f.read().strip()
-        logger.info(f"Loaded suffix_prompt from file: {args.suffix_prompt_file}")
-
-    # ---- 1. Load input.json ----
+    # ---- 1. Load input.json and locate the target video ----
     logger.info(f"Loading input.json from: {args.all_input_json}")
     with open(args.all_input_json, "r", encoding="utf-8") as f:
         all_input = json.load(f)
@@ -482,7 +473,7 @@ Example:
     if video_id not in all_input:
         logger.error(
             f"Video ID '{video_id}' not found in input.json. "
-            f"Available IDs: {list(all_input.keys())[:10]}..."
+            f"Available IDs (first 10): {list(all_input.keys())[:10]}..."
         )
         return
 
@@ -490,8 +481,16 @@ Example:
     name_image_list = video_info["name_image_list"]
     logger.info(f"Video ID: {video_id}")
     logger.info(f"  name_image_list has {len(name_image_list)} entries")
+    logger.info(f"  instruction: {video_info.get('instruction', 'N/A')[:80]}...")
+    logger.info(f"  text_material: {video_info.get('text_material', 'N/A')[:80]}...")
+    logger.info(f"  video_material: {video_info.get('video_material', 'N/A')[:80]}...")
 
-    # ---- 2. Load features ----
+    # ---- 2. Build prompts by filling placeholders ----
+    prefix_prompt, suffix_prompt = build_prompt_from_input(video_info)
+    logger.info(f"Prefix prompt length: {len(prefix_prompt)} chars")
+    logger.info(f"Suffix prompt length: {len(suffix_prompt)} chars")
+
+    # ---- 3. Load pre-extracted features ----
     interleaved_items = FeatureLoader.load_from_name_image_list(
         name_image_list=name_image_list,
         features_root=args.features_root,
@@ -503,7 +502,6 @@ Example:
         logger.error("No feature files loaded! Check --features_root path.")
         return
 
-    # Statistics
     n_frames = sum(1 for item in interleaved_items if item["type"] == "feature")
     n_tokens = sum(
         item["data"]["post_merger_embeds"].shape[0]
@@ -511,28 +509,6 @@ Example:
         if item["type"] == "feature"
     )
     logger.info(f"Loaded {n_frames} frames, {n_tokens} visual tokens total")
-
-    # ---- 3. Build prompts ----
-    prefix_prompt = args.prefix_prompt or ""
-
-    if args.suffix_prompt:
-        suffix_prompt = args.suffix_prompt
-    elif args.use_instruction_from_json and "instruction" in video_info:
-        suffix_prompt = video_info["instruction"]
-        logger.info("Using 'instruction' from input.json as suffix_prompt")
-    else:
-        suffix_prompt = "Please analyze these video clips."
-
-    # Optionally include text_material in prefix
-    if "text_material" in video_info and not args.prefix_prompt:
-        prefix_prompt = (
-            f"Reference material:\n{video_info['text_material']}\n\n"
-            f"Video material info:\n{video_info.get('video_material', '')}\n"
-        )
-        logger.info("Auto-included text_material and video_material as prefix_prompt")
-
-    logger.info(f"prefix_prompt: {prefix_prompt[:100]}...")
-    logger.info(f"suffix_prompt: {suffix_prompt[:100]}...")
 
     # ---- 4. Run inference ----
     inferencer = Qwen3VLFeatureInference(
@@ -558,14 +534,13 @@ Example:
     print(response)
     print("=" * 80)
 
-    # Save result
+    # Save result to JSON
     if args.output_path:
         result_path = Path(args.output_path)
     else:
         result_path = Path(args.features_root) / video_id / "inference_result.json"
 
     os.makedirs(result_path.parent, exist_ok=True)
-
     result = {
         "video_id": video_id,
         "total_frames": n_frames,
@@ -574,7 +549,6 @@ Example:
         "suffix_prompt": suffix_prompt,
         "response": response,
     }
-
     with open(result_path, "w", encoding="utf-8") as f:
         json.dump(result, f, indent=2, ensure_ascii=False)
 

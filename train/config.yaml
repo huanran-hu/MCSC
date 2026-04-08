@@ -1,0 +1,76 @@
+# config.yaml
+# ============
+# Full-parameter fine-tuning of Qwen3-VL (Merger + LLM) with cached ViT features.
+# Designed for 8x A100-80GB.
+
+# ---- Model ----
+model:
+  model_name: "Qwen/Qwen3-VL-8B-Instruct"
+  torch_dtype: "bfloat16"
+  attn_implementation: "flash_attention_2"
+  min_pixels: 200704    # 256 * 28 * 28 (must match extraction config)
+  max_pixels: 1003520   # 1280 * 28 * 28 (must match extraction config)
+
+# ---- Data ----
+data:
+  input_json: "/path/to/input.json"
+  feature_root: "/path/to/feature_root"    # e.g. /data/.../pair_0.6_0.2_0.2
+  max_frames_per_video: 8                  # Max frames per .mp4; uniform sample if exceeded
+  max_seq_length: 8192                     # Max token sequence length
+
+# ---- Prompt ----
+# Prompts are loaded from prompt/compose.py by default (PREFIX_PROMPT, SUFFIX_PROMPT).
+# Uncomment below to override with custom prompts in this config file.
+# prompt:
+#   prefix_prompt: "Your custom prefix prompt here..."
+#   suffix_prompt: "Your custom suffix prompt here..."
+
+# ---- Training (HuggingFace TrainingArguments) ----
+training:
+  output_dir: "./output/qwen3vl_finetune"
+  overwrite_output_dir: false
+
+  # Epochs & steps
+  num_train_epochs: 3
+
+  # Batch size: effective_batch = per_device * num_gpus * grad_accum = 1 * 8 * 4 = 32
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 4
+
+  # Optimizer
+  optim: "adamw_torch"
+  learning_rate: 1.0e-5
+  weight_decay: 0.01
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_epsilon: 1.0e-8
+  max_grad_norm: 1.0
+
+  # Scheduler
+  lr_scheduler_type: "cosine"
+  warmup_ratio: 0.05
+
+  # Precision
+  bf16: true
+  tf32: true
+
+  # Logging
+  logging_steps: 10
+  logging_first_step: true
+  report_to: "tensorboard"
+
+  # Save
+  save_strategy: "steps"
+  save_steps: 200
+  save_total_limit: 5
+
+  # Misc
+  seed: 42
+  dataloader_num_workers: 4
+  dataloader_pin_memory: true
+  remove_unused_columns: false 
+  gradient_checkpointing: true
+  ddp_find_unused_parameters: false
+
+  # DeepSpeed
+  deepspeed: "train/ds_config.json"
