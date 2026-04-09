@@ -205,7 +205,7 @@ Multi-dimensional evaluation on MCSC-Bench (rescaled by maximum and minimum for 
 
 Due to page limits in the main paper, we only report partial results. Below we list the complete performance of all evaluated models.
 
-![English](images/English.png)
+![English](images/OOD.png)
 
 
 ## License, Ethics, and Access
