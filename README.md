@@ -4,7 +4,7 @@
 
 Renmin University of China, Alibaba Group, Nanyang Technological University
 
-## 📋 Table of Contents
+## Contents
 
 - [Supplementary Material](#supplementary-material)
 - [MCSC-Bench Release 📢](#mcsc-bench-release-)
@@ -75,9 +75,10 @@ In Out-Of-Domain_test, we provide general OOD test set. It is designed for direc
 You can also customize interleaved image-text prompt, using name_image_list (interleaved clip IDs and frame paths), video_material (clip inventory with durations), text_material (textual reference), and instruction (user instruction) in `Out-Of-Domain_test/input.json`.
 
 ### Train
+We provides pre-extracted **Qwen3-VL-8B** visual features (ViT output before the Merger):
 https://huggingface.co/datasets/huanranhu-ruc/MCSC/tree/main/train
 
-Fine-tune Qwen3-VL (Merger + LLM) using pre-extracted ViT features. The ViT encoder is frozen, so training only updates the **Merger** and **LLM** — significantly reducing GPU memory and compute.
+Fine-tune Qwen3-VL (Merger + LLM) using pre-extracted ViT features. The ViT encoder is frozen, so training only updates the **Merger** and **LLM** — significantly reducing GPU memory and compute. The following code is a simple example for reference.
 
 #### Prerequisites
 
@@ -129,16 +130,11 @@ project_root/
    deepspeed --num_gpus=8 train/train.py --config train/config.yaml
    ```
 
-#### Key Configuration
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `max_frames_per_video` | `8` | Max frames per video; uniformly sampled if exceeded |
-| `max_seq_length` | `8192` | Max token length; longer sequences are truncated |
-| `learning_rate` | `1e-5` | AdamW learning rate |
-| `per_device_train_batch_size` | `1` | Batch size per GPU |
-| `gradient_accumulation_steps` | `4` | Effective batch = 1 × 8 GPUs × 4 = 32 |
-| `num_train_epochs` | `3` | Total training epochs |
+max_frames_per_video: Max frames per video; uniformly sampled if exceeded.
+max_seq_length: Max token length; longer sequences are truncated
+
+
 
 Prompts are loaded from `prompt/compose.py` by default. To override, uncomment the `prompt:` section in `config.yaml`.
 

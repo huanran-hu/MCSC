@@ -353,7 +353,7 @@ class Qwen25VLFeatureInference:
         prefix_prompt: str = "",
         suffix_prompt: str = "",
         max_new_tokens: int = 4096,
-        temperature: float = 0.7,
+        temperature: float = 0.1,
         top_p: float = 0.8,
         do_sample: bool = True,
     ) -> str:
@@ -484,8 +484,8 @@ Example:
         help="Maximum number of tokens to generate (default: 4096)",
     )
     parser.add_argument(
-        "--temperature", type=float, default=0.7,
-        help="Sampling temperature (default: 0.7)",
+        "--temperature", type=float, default=0.1,
+        help="Sampling temperature (default: 0.1)",
     )
     parser.add_argument(
         "--top_p", type=float, default=0.8,
