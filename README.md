@@ -1,4 +1,4 @@
-# MCSC-Bench: Multimodal Context-to-Script Creation for Realistic Video Production
+# MCSC-Bench
 
 **Huanran Hu, Zihui Ren, Dingyi Yang, Liangyu Chen, Qixiang Gao, Tiezheng Ge, Qin Jin**
 
@@ -180,10 +180,6 @@ python scripts/eval_multi_dimension.py \
 Our Evaluator Model:
 
 https://huggingface.co/huanranhu-ruc/MCSC_evaluator
-
-Our Trained Model on the MCSC-Bench train set: 
-
-MCSC-8B: https://huggingface.co/huanranhu-ruc/MCSC-8B
 
 
 
