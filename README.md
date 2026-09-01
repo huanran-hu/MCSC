@@ -6,7 +6,6 @@ Renmin University of China, Alibaba Group, Nanyang Technological University
 
 ## Contents
 
-- [Supplementary Material](#supplementary-material)
 - [MCSC-Bench Release 📢](#mcsc-bench-release-)
   - [In-Domain Test](#in-domain-test)
   - [Out-Of-Domain Test](#out-of-domain-test)
