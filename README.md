@@ -1,4 +1,4 @@
-# MCSC-Bench
+# Creating Structured Video Scripts from Multimodal Long Contexts
 
 **Huanran Hu, Zihui Ren, Dingyi Yang, Liangyu Chen, Qixiang Gao, Tiezheng Ge, Qin Jin**
 
@@ -16,9 +16,6 @@ Renmin University of China, Alibaba Group, Nanyang Technological University
 - [Additional Main Results](#additional-main-results)
 - [License, Ethics, and Access](#license-ethics-and-access)
 
-
-##  Supplementary Material
-For more details on dataset annotation, human evaluation, additional case studies, etc, please refer to [supplementary material](supplementary.pdf).
 
 ## MCSC-Bench Release :loudspeaker:
 
