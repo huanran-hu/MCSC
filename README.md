@@ -4,6 +4,10 @@
 
 Renmin University of China, Alibaba Group, Nanyang Technological University
 
+![intro](images/intro.jpg)
+
+Arxiv link: coming soon...
+
 ## Contents
 
 - [MCSC-Bench Release 📢](#mcsc-bench-release-)
